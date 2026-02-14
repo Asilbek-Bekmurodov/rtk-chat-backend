@@ -1,7 +1,7 @@
 import express from "express";
 import Chat from "../models/Chat.js";
 
-import { verifyToken } from "../middleware/auth.js";
+import { requireAdmin, verifyToken } from "../middleware/auth.js";
 
 const router = express.Router();
 
@@ -18,11 +18,20 @@ router.post("/", verifyToken, async (req, res) => {
 
 // Mening chatlarim
 router.get("/", verifyToken, async (req, res) => {
-  const chats = await Chat.find({
-    participants: req.user.id,
-  }).populate("participants", "username");
+  const query =
+    req.user?.role === "admin" ? {} : { participants: req.user.id };
+  const chats = await Chat.find(query).populate("participants", "username");
 
   res.json(chats);
+});
+
+// Admin: barcha chatlarni boshqarish
+router.delete("/:id", verifyToken, requireAdmin, async (req, res) => {
+  const chat = await Chat.findByIdAndDelete(req.params.id);
+  if (!chat) {
+    return res.status(404).json({ message: "Chat topilmadi" });
+  }
+  res.json({ message: "Chat o‘chirildi" });
 });
 
 export default router;

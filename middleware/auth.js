@@ -13,7 +13,10 @@ export const verifyToken = (req, res, next) => {
   }
 
   const token = authHeader.split(" ")[1];
-  const secret = process.env.JWT_SECRET || "SECRET_KEY";
+  const secret =
+    process.env.ACCESS_TOKEN_SECRET ||
+    process.env.JWT_SECRET ||
+    "SECRET_KEY";
 
   try {
     const decoded = jwt.verify(token, secret);
@@ -22,6 +25,13 @@ export const verifyToken = (req, res, next) => {
   } catch (err) {
     return res.status(401).json({ message: "Token noto‘g‘ri" });
   }
+};
+
+export const requireAdmin = (req, res, next) => {
+  if (req.user?.role !== "admin") {
+    return res.status(403).json({ message: "Admin ruxsat kerak" });
+  }
+  next();
 };
 
 router.post("/register", async (req, res) => {
