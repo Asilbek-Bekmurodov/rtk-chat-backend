@@ -47,7 +47,11 @@ const createRefreshToken = async userId => {
 
 router.post("/register", async (req, res) => {
   try {
-    const { username, password } = req.body;
+    const { username, password } = req.body || {};
+
+    if (!username || !password) {
+      return res.status(400).json({ message: "Username yoki password yo‘q" });
+    }
 
     const existingUser = await User.findOne({ username });
     if (existingUser) {
@@ -70,7 +74,11 @@ router.post("/register", async (req, res) => {
 
 router.post("/login", async (req, res) => {
   try {
-    const { username, password } = req.body;
+    const { username, password } = req.body || {};
+
+    if (!username || !password) {
+      return res.status(400).json({ message: "Username yoki password yo‘q" });
+    }
 
     const user = await User.findOne({ username });
     if (!user) {
