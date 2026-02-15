@@ -63,6 +63,7 @@ router.post("/register", async (req, res) => {
 
     res.status(201).json(user);
   } catch (error) {
+    console.error("Register error:", error);
     res.status(500).json({ message: "Server xatosi" });
   }
 });
@@ -96,6 +97,7 @@ router.post("/login", async (req, res) => {
       },
     });
   } catch (error) {
+    console.error("Login error:", error);
     res.status(500).json({ message: "Server xatosi" });
   }
 });
@@ -150,6 +152,7 @@ router.post("/refresh", async (req, res) => {
       refreshToken: newRefreshToken,
     });
   } catch (error) {
+    console.error("Refresh error:", error);
     res.status(500).json({ message: "Server xatosi" });
   }
 });
@@ -171,6 +174,7 @@ router.post("/logout", async (req, res) => {
 
     res.json({ message: "Logout qilindi" });
   } catch (error) {
+    console.error("Logout error:", error);
     res.status(500).json({ message: "Server xatosi" });
   }
 });
