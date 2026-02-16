@@ -19,7 +19,9 @@ router.post("/", verifyToken, async (req, res) => {
 // Mening chatlarim
 router.get("/", verifyToken, async (req, res) => {
   const query =
-    req.user?.role === "admin" ? {} : { participants: req.user.id };
+    req.user?.role === "admin" || req.user?.role === "superAdmin"
+      ? {}
+      : { participants: req.user.id };
   const chats = await Chat.find(query).populate("participants", "username");
 
   res.json(chats);

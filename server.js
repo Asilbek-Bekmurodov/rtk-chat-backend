@@ -2,13 +2,13 @@ import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import connectDB from "./config/db.js";
+import { seedAdmins } from "./config/seed.js";
 
 import authRoutes from "./routes/auth.routes.js";
 import usersRoutes from "./routes/users.routes.js";
 import chatRoutes from "./routes/chat.routes.js";
 
 dotenv.config();
-connectDB();
 
 const app = express();
 
@@ -71,6 +71,16 @@ app.use((err, req, res, next) => {
 
 const PORT = process.env.PORT || 5001;
 
-app.listen(PORT, () => {
-  console.log(`🚀 Server running on http://localhost:${PORT}`);
+const bootstrap = async () => {
+  await connectDB();
+  await seedAdmins();
+
+  app.listen(PORT, () => {
+    console.log(`🚀 Server running on http://localhost:${PORT}`);
+  });
+};
+
+bootstrap().catch(err => {
+  console.error("❌ Startup error:", err);
+  process.exit(1);
 });
