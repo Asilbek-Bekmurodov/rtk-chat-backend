@@ -1,4 +1,6 @@
 import express from "express";
+import http from "http";
+import { Server } from "socket.io";
 import cors from "cors";
 import dotenv from "dotenv";
 import connectDB from "./config/db.js";
@@ -7,10 +9,12 @@ import { seedAdmins } from "./config/seed.js";
 import authRoutes from "./routes/auth.routes.js";
 import usersRoutes from "./routes/users.routes.js";
 import chatRoutes from "./routes/chat.routes.js";
+import initSocket from "./socket/socket.js";
 
 dotenv.config();
 
 const app = express();
+const server = http.createServer(app);
 
 /* ================= MIDDLEWARE ================= */
 
@@ -75,7 +79,17 @@ const bootstrap = async () => {
   await connectDB();
   await seedAdmins();
 
-  app.listen(PORT, () => {
+  const io = new Server(server, {
+    cors: {
+      origin: allowedOrigins,
+      credentials: true,
+      methods: ["GET", "POST"],
+    },
+  });
+
+  initSocket(io);
+
+  server.listen(PORT, () => {
     console.log(`🚀 Server running on http://localhost:${PORT}`);
   });
 };
