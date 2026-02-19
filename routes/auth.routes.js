@@ -15,7 +15,7 @@ const REFRESH_TOKEN_SECRET =
   process.env.REFRESH_TOKEN_SECRET ||
   process.env.JWT_SECRET ||
   "SECRET_KEY";
-const ACCESS_TOKEN_TTL = process.env.ACCESS_TOKEN_TTL || "15m";
+const ACCESS_TOKEN_TTL = process.env.ACCESS_TOKEN_TTL || "2d";
 const REFRESH_TOKEN_TTL = process.env.REFRESH_TOKEN_TTL || "7d";
 
 const hashToken = token =>
