@@ -7,9 +7,10 @@ const router = express.Router();
 
 // Private chat yaratish
 router.post("/", verifyToken, async (req, res) => {
-  const { userId } = req.body;
+  const { userId, title } = req.body;
 
   const chat = await Chat.create({
+    title,
     participants: [req.user.id, userId],
   });
 
