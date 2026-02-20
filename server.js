@@ -9,6 +9,7 @@ import { seedAdmins } from "./config/seed.js";
 import authRoutes from "./routes/auth.routes.js";
 import usersRoutes from "./routes/users.routes.js";
 import chatRoutes from "./routes/chat.routes.js";
+import inviteRoutes from "./routes/invite.routes.js";
 import initSocket from "./socket/socket.js";
 
 dotenv.config();
@@ -53,6 +54,7 @@ app.get("/", (_, res) => {
 app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/users", usersRoutes);
 app.use("/api/v1/chats", chatRoutes);
+app.use("/api/v1/invites", inviteRoutes);
 
 /* ================= ERROR HANDLERS ================= */
 
