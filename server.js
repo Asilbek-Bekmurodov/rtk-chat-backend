@@ -24,12 +24,18 @@ const allowedOrigins = [
   "http://127.0.0.1:5173",
   "http://localhost:5174",
   "http://127.0.0.1:5174",
-];
+  process.env.CLIENT_URL,
+  process.env.FRONTEND_URL,
+].filter(Boolean);
+
+const isOriginAllowed = (origin) => {
+  if (!origin) return true;
+  return allowedOrigins.includes(origin);
+};
 
 const corsOptions = {
   origin: (origin, callback) => {
-    if (!origin) return callback(null, true);
-    if (allowedOrigins.includes(origin)) return callback(null, true);
+    if (isOriginAllowed(origin)) return callback(null, true);
     return callback(new Error("Not allowed by CORS"));
   },
   credentials: true,
@@ -83,9 +89,13 @@ const bootstrap = async () => {
 
   const io = new Server(server, {
     cors: {
-      origin: allowedOrigins,
+      origin: (origin, callback) => {
+        if (isOriginAllowed(origin)) return callback(null, true);
+        return callback(new Error("Not allowed by CORS"));
+      },
       credentials: true,
       methods: ["GET", "POST"],
+      allowedHeaders: ["Content-Type", "Authorization"],
     },
   });
 
