@@ -35,7 +35,7 @@ router.post("/:id/invite", verifyToken, async (req, res) => {
   const isAdmin =
     req.user?.role === "admin" || req.user?.role === "superAdmin";
   const isParticipant = chat.participants.some(
-    p => p.toString() === req.user.id,
+    p => p && p.toString() === req.user.id,
   );
   if (!isAdmin && !isParticipant) {
     return res
@@ -52,7 +52,7 @@ router.post("/:id/invite", verifyToken, async (req, res) => {
   }
 
   const alreadyInChat = chat.participants.some(
-    p => p.toString() === user._id.toString(),
+    p => p && p.toString() === user._id.toString(),
   );
   if (alreadyInChat) {
     return res.status(400).json({ message: "User allaqachon chatda" });
