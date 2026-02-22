@@ -1,6 +1,7 @@
 import express from "express";
 import Chat from "../models/Chat.js";
 import Invite from "../models/Invite.js";
+import Message from "../models/Message.js";
 import User from "../models/User.js";
 
 import { requireAdmin, verifyToken } from "../middleware/auth.js";
@@ -111,6 +112,29 @@ router.get("/", verifyToken, async (req, res) => {
   const chats = await Chat.find(query).populate("participants", "username");
 
   res.json(chats);
+});
+
+// Chat history
+router.get("/:id/messages", verifyToken, async (req, res) => {
+  const chat = await Chat.findById(req.params.id);
+  if (!chat) {
+    return res.status(404).json({ message: "Chat topilmadi" });
+  }
+
+  const isAdmin =
+    req.user?.role === "admin" || req.user?.role === "superAdmin";
+  const isParticipant = chat.participants.some(
+    p => p && p.toString() === req.user.id,
+  );
+  if (!isAdmin && !isParticipant) {
+    return res.status(403).json({ message: "Ruxsat yo‘q" });
+  }
+
+  const messages = await Message.find({ chatId: chat._id })
+    .sort({ createdAt: 1 })
+    .populate("sender", "username");
+
+  res.json(messages);
 });
 
 // Admin: barcha chatlarni boshqarish
