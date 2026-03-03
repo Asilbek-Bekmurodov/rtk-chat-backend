@@ -79,6 +79,22 @@ router.post("/:id/invite", verifyToken, async (req, res) => {
 
 // Invite qabul qilish (join)
 router.post("/:id/join", verifyToken, async (req, res) => {
+  const chat = await Chat.findById(req.params.id);
+  if (!chat) {
+    return res.status(404).json({ message: "Chat topilmadi" });
+  }
+
+  const isParticipant = chat.participants.some(
+    p => p && p.toString() === req.user.id,
+  );
+  if (isParticipant) {
+    const populated = await Chat.findById(chat._id).populate(
+      "participants",
+      "username",
+    );
+    return res.json({ message: "Allaqachon chatda", chat: populated });
+  }
+
   const invite = await Invite.findOne({
     chatId: req.params.id,
     to: req.user.id,

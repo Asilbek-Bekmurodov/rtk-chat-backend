@@ -5,6 +5,22 @@ import { verifyToken } from "../middleware/auth.js";
 
 const router = express.Router();
 
+// Menga kelgan invitelar
+router.get("/", verifyToken, async (req, res) => {
+  const query =
+    req.user?.role === "admin" || req.user?.role === "superAdmin"
+      ? {}
+      : { to: req.user.id };
+
+  const invites = await Invite.find(query)
+    .sort({ createdAt: -1 })
+    .populate("chatId")
+    .populate("from", "username")
+    .populate("to", "username");
+
+  res.json(invites);
+});
+
 // Invite qabul qilish
 router.post("/:id/accept", verifyToken, async (req, res) => {
   const invite = await Invite.findById(req.params.id);
