@@ -112,11 +112,11 @@ router.post("/:id/join", verifyToken, async (req, res) => {
   invite.status = "accepted";
   await invite.save();
 
-  const chat = await Chat.findById(invite.chatId).populate(
+  const populatedChat = await Chat.findById(invite.chatId).populate(
     "participants",
     "username",
   );
-  res.json(chat);
+  res.json(populatedChat);
 });
 
 // Mening chatlarim
