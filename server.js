@@ -19,25 +19,8 @@ const server = http.createServer(app);
 
 /* ================= MIDDLEWARE ================= */
 
-const allowedOrigins = [
-  "http://localhost:5173",
-  "http://127.0.0.1:5173",
-  "http://localhost:5174",
-  "http://127.0.0.1:5174",
-  process.env.CLIENT_URL,
-  process.env.FRONTEND_URL,
-].filter(Boolean);
-
-const isOriginAllowed = (origin) => {
-  if (!origin) return true;
-  return allowedOrigins.includes(origin);
-};
-
 const corsOptions = {
-  origin: (origin, callback) => {
-    if (isOriginAllowed(origin)) return callback(null, true);
-    return callback(new Error("Not allowed by CORS"));
-  },
+  origin: true,
   credentials: true,
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
@@ -89,10 +72,7 @@ const bootstrap = async () => {
 
   const io = new Server(server, {
     cors: {
-      origin: (origin, callback) => {
-        if (isOriginAllowed(origin)) return callback(null, true);
-        return callback(new Error("Not allowed by CORS"));
-      },
+      origin: true,
       credentials: true,
       methods: ["GET", "POST"],
       allowedHeaders: ["Content-Type", "Authorization"],
