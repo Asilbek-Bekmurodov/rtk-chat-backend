@@ -74,7 +74,11 @@ router.post("/:id/invite", verifyToken, async (req, res) => {
     to: user._id,
   });
 
-  res.status(201).json(invite);
+  res.status(201).json({
+    invite,
+    chatId: chat._id,
+    joinPath: `/api/v1/invites/${invite._id}/join`,
+  });
 });
 
 // Invite qabul qilish (join)
