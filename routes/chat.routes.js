@@ -14,13 +14,13 @@ const isValidObjectId = id => mongoose.Types.ObjectId.isValid(id);
 router.post("/", verifyToken, async (req, res) => {
   const { userId, title } = req.body;
 
-  if (!userId || !isValidObjectId(userId)) {
+  if (userId && !isValidObjectId(userId)) {
     return res.status(400).json({ message: "userId noto‘g‘ri" });
   }
 
   const chat = await Chat.create({
     title,
-    participants: [req.user.id, userId],
+    participants: userId ? [req.user.id, userId] : [req.user.id],
   });
 
   res.json(chat);
