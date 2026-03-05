@@ -4,6 +4,7 @@ import crypto from "crypto";
 import jwt from "jsonwebtoken";
 import User from "../models/User.js";
 import RefreshToken from "../models/RefreshToken.js";
+import { verifyToken } from "../middleware/auth.js";
 
 const router = express.Router();
 
@@ -106,6 +107,78 @@ router.post("/login", async (req, res) => {
     });
   } catch (error) {
     console.error("Login error:", error);
+    res.status(500).json({ message: "Server xatosi" });
+  }
+});
+
+router.post("/change-password", verifyToken, async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body || {};
+
+    if (!currentPassword || !newPassword) {
+      return res
+        .status(400)
+        .json({ message: "Current va new password kerak" });
+    }
+
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return res.status(404).json({ message: "User topilmadi" });
+    }
+
+    const isMatch = await bcrypt.compare(currentPassword, user.password);
+    if (!isMatch) {
+      return res.status(400).json({ message: "Parol xato" });
+    }
+
+    user.password = await bcrypt.hash(newPassword, 10);
+    await user.save();
+
+    await RefreshToken.updateMany(
+      { user: user._id, revokedAt: null },
+      { revokedAt: new Date() },
+    );
+
+    res.json({ message: "Parol yangilandi" });
+  } catch (error) {
+    console.error("Change password error:", error);
+    res.status(500).json({ message: "Server xatosi" });
+  }
+});
+
+router.post("/change-username", verifyToken, async (req, res) => {
+  try {
+    const { username } = req.body || {};
+
+    if (!username) {
+      return res.status(400).json({ message: "Username kerak" });
+    }
+
+    const existingUser = await User.findOne({ username });
+    if (existingUser && String(existingUser._id) !== String(req.user.id)) {
+      return res.status(400).json({ message: "Username band" });
+    }
+
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return res.status(404).json({ message: "User topilmadi" });
+    }
+
+    user.username = username;
+    await user.save();
+
+    res.json({
+      message: "Username yangilandi",
+      user: {
+        _id: user._id,
+        username: user.username,
+        role: user.role,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt,
+      },
+    });
+  } catch (error) {
+    console.error("Change username error:", error);
     res.status(500).json({ message: "Server xatosi" });
   }
 });
