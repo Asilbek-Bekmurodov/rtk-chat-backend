@@ -1,4 +1,5 @@
 import express from "express";
+import mongoose from "mongoose";
 import Chat from "../models/Chat.js";
 import Invite from "../models/Invite.js";
 import Message from "../models/Message.js";
@@ -7,10 +8,15 @@ import User from "../models/User.js";
 import { requireAdmin, verifyToken } from "../middleware/auth.js";
 
 const router = express.Router();
+const isValidObjectId = id => mongoose.Types.ObjectId.isValid(id);
 
 // Private chat yaratish
 router.post("/", verifyToken, async (req, res) => {
   const { userId, title } = req.body;
+
+  if (!userId || !isValidObjectId(userId)) {
+    return res.status(400).json({ message: "userId noto‘g‘ri" });
+  }
 
   const chat = await Chat.create({
     title,
@@ -26,6 +32,14 @@ router.post("/:id/invite", verifyToken, async (req, res) => {
 
   if (!username && !userId) {
     return res.status(400).json({ message: "username yoki userId kerak" });
+  }
+
+  if (!isValidObjectId(req.params.id)) {
+    return res.status(400).json({ message: "Chat id noto‘g‘ri" });
+  }
+
+  if (userId && !isValidObjectId(userId)) {
+    return res.status(400).json({ message: "userId noto‘g‘ri" });
   }
 
   const chat = await Chat.findById(req.params.id);
@@ -83,6 +97,10 @@ router.post("/:id/invite", verifyToken, async (req, res) => {
 
 // Invite qabul qilish (join)
 router.post("/:id/join", verifyToken, async (req, res) => {
+  if (!isValidObjectId(req.params.id)) {
+    return res.status(400).json({ message: "Chat id noto‘g‘ri" });
+  }
+
   const chat = await Chat.findById(req.params.id);
   if (!chat) {
     return res.status(404).json({ message: "Chat topilmadi" });
@@ -136,6 +154,10 @@ router.get("/", verifyToken, async (req, res) => {
 
 // Chat history
 router.get("/:id/messages", verifyToken, async (req, res) => {
+  if (!isValidObjectId(req.params.id)) {
+    return res.status(400).json({ message: "Chat id noto‘g‘ri" });
+  }
+
   const chat = await Chat.findById(req.params.id);
   if (!chat) {
     return res.status(404).json({ message: "Chat topilmadi" });
@@ -159,6 +181,10 @@ router.get("/:id/messages", verifyToken, async (req, res) => {
 
 // Admin: barcha chatlarni boshqarish
 router.delete("/:id", verifyToken, requireAdmin, async (req, res) => {
+  if (!isValidObjectId(req.params.id)) {
+    return res.status(400).json({ message: "Chat id noto‘g‘ri" });
+  }
+
   const chat = await Chat.findByIdAndDelete(req.params.id);
   if (!chat) {
     return res.status(404).json({ message: "Chat topilmadi" });
