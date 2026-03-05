@@ -1,9 +1,11 @@
 import express from "express";
+import mongoose from "mongoose";
 import Chat from "../models/Chat.js";
 import Invite from "../models/Invite.js";
 import { verifyToken } from "../middleware/auth.js";
 
 const router = express.Router();
+const isValidObjectId = id => mongoose.Types.ObjectId.isValid(id);
 
 const populateChat = async chatId =>
   Chat.findById(chatId).populate("participants", "username");
@@ -26,6 +28,10 @@ router.get("/", verifyToken, async (req, res) => {
 
 // Invite orqali join (link bosilganda)
 router.post("/:id/join", verifyToken, async (req, res) => {
+  if (!isValidObjectId(req.params.id)) {
+    return res.status(400).json({ message: "Invite id noto‘g‘ri" });
+  }
+
   const invite = await Invite.findById(req.params.id);
   if (!invite) {
     return res.status(404).json({ message: "Invite topilmadi" });
@@ -73,6 +79,10 @@ router.post("/:id/join", verifyToken, async (req, res) => {
 
 // Invite qabul qilish
 router.post("/:id/accept", verifyToken, async (req, res) => {
+  if (!isValidObjectId(req.params.id)) {
+    return res.status(400).json({ message: "Invite id noto‘g‘ri" });
+  }
+
   const invite = await Invite.findById(req.params.id);
   if (!invite) {
     return res.status(404).json({ message: "Invite topilmadi" });
@@ -97,6 +107,33 @@ router.post("/:id/accept", verifyToken, async (req, res) => {
 
   const populatedChat = await populateChat(invite.chatId);
   res.json({ invite, chat: populatedChat });
+});
+
+// Invite rad etish
+router.post("/:id/reject", verifyToken, async (req, res) => {
+  if (!isValidObjectId(req.params.id)) {
+    return res.status(400).json({ message: "Invite id noto‘g‘ri" });
+  }
+
+  const invite = await Invite.findById(req.params.id);
+  if (!invite) {
+    return res.status(404).json({ message: "Invite topilmadi" });
+  }
+
+  const isAdmin =
+    req.user?.role === "admin" || req.user?.role === "superAdmin";
+  if (!isAdmin && invite.to.toString() !== req.user.id) {
+    return res.status(403).json({ message: "Ruxsat yo‘q" });
+  }
+
+  if (invite.status !== "pending") {
+    return res.status(400).json({ message: "Invite allaqachon yopilgan" });
+  }
+
+  invite.status = "declined";
+  await invite.save();
+
+  res.json({ invite });
 });
 
 export default router;
