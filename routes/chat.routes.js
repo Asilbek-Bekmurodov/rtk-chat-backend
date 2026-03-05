@@ -192,4 +192,29 @@ router.delete("/:id", verifyToken, requireAdmin, async (req, res) => {
   res.json({ message: "Chat o‘chirildi" });
 });
 
+// User: chatdan chiqish (o‘zini o‘chirish)
+router.delete("/:id/leave", verifyToken, async (req, res) => {
+  if (!isValidObjectId(req.params.id)) {
+    return res.status(400).json({ message: "Chat id noto‘g‘ri" });
+  }
+
+  const chat = await Chat.findById(req.params.id);
+  if (!chat) {
+    return res.status(404).json({ message: "Chat topilmadi" });
+  }
+
+  const isParticipant = chat.participants.some(
+    p => p && p.toString() === req.user.id,
+  );
+  if (!isParticipant) {
+    return res.status(403).json({ message: "Ruxsat yo‘q" });
+  }
+
+  await Chat.findByIdAndUpdate(chat._id, {
+    $pull: { participants: req.user.id },
+  });
+
+  res.json({ message: "Chatdan chiqildi" });
+});
+
 export default router;
