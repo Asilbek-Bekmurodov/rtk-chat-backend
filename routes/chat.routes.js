@@ -223,6 +223,57 @@ router.delete("/:chatId/messages/:messageId", verifyToken, async (req, res) => {
   res.json({ message: "Message o‘chirildi" });
 });
 
+// Chat ichidagi 1 ta xabarni tahrirlash
+router.patch("/:chatId/messages/:messageId", verifyToken, async (req, res) => {
+  const { chatId, messageId } = req.params;
+  const { text } = req.body;
+
+  if (!text || typeof text !== "string" || !text.trim()) {
+    return res.status(400).json({ message: "Text kerak" });
+  }
+
+  if (!isValidObjectId(chatId)) {
+    return res.status(400).json({ message: "Chat id noto‘g‘ri" });
+  }
+
+  if (!isValidObjectId(messageId)) {
+    return res.status(400).json({ message: "Message id noto‘g‘ri" });
+  }
+
+  const chat = await Chat.findById(chatId);
+  if (!chat) {
+    return res.status(404).json({ message: "Chat topilmadi" });
+  }
+
+  const isAdmin =
+    req.user?.role === "admin" || req.user?.role === "superAdmin";
+  const isParticipant = chat.participants.some(
+    p => p && p.toString() === req.user.id,
+  );
+  if (!isAdmin && !isParticipant) {
+    return res.status(403).json({ message: "Ruxsat yo‘q" });
+  }
+
+  const message = await Message.findById(messageId);
+  if (!message) {
+    return res.status(404).json({ message: "Message topilmadi" });
+  }
+
+  if (message.chatId?.toString() !== chatId.toString()) {
+    return res.status(400).json({ message: "Message chatga tegishli emas" });
+  }
+
+  const isOwner = message.sender?.toString() === req.user.id;
+  if (!isAdmin && !isOwner) {
+    return res.status(403).json({ message: "Faqat egasi tahrirlay oladi" });
+  }
+
+  message.text = text.trim();
+  await message.save();
+
+  res.json(message);
+});
+
 // Admin: barcha chatlarni boshqarish
 router.delete("/:id", verifyToken, requireAdmin, async (req, res) => {
   if (!isValidObjectId(req.params.id)) {
