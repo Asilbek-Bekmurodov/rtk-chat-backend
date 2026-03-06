@@ -36,14 +36,27 @@ const initSocket = (io) => {
     });
 
     // Message send
-    socket.on("sendMessage", async ({ chatId, text }) => {
+    socket.on("sendMessage", async ({ chatId, text, replyTo }) => {
+      let replyMessage = null;
+
+      if (replyTo) {
+        replyMessage = await Message.findById(replyTo);
+        if (!replyMessage) return;
+        if (replyMessage.chatId?.toString() !== chatId?.toString()) return;
+      }
+
       const message = await Message.create({
         chatId,
         sender: socket.user.id,
         text,
+        replyTo: replyMessage ? replyMessage._id : null,
       });
 
-      io.to(chatId).emit("receiveMessage", message);
+      const populated = await Message.findById(message._id)
+        .populate("sender", "username")
+        .populate("replyTo", "text sender");
+
+      io.to(chatId).emit("receiveMessage", populated);
     });
 
     socket.on("disconnect", () => {

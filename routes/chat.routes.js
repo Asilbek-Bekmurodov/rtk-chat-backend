@@ -174,7 +174,8 @@ router.get("/:id/messages", verifyToken, async (req, res) => {
 
   const messages = await Message.find({ chatId: chat._id })
     .sort({ createdAt: 1 })
-    .populate("sender", "username");
+    .populate("sender", "username")
+    .populate("replyTo", "text sender");
 
   res.json(messages);
 });
