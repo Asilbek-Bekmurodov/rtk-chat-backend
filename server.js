@@ -3,8 +3,12 @@ import http from "http";
 import { Server } from "socket.io";
 import cors from "cors";
 import dotenv from "dotenv";
+import { createRequire } from "module";
 import connectDB from "./config/db.js";
 import { seedAdmins } from "./config/seed.js";
+
+const require = createRequire(import.meta.url);
+const swaggerDoc = require("./swagger.json");
 
 import authRoutes from "./routes/auth.routes.js";
 import usersRoutes from "./routes/users.routes.js";
@@ -39,6 +43,8 @@ app.get("/", (_, res) => {
     message: "Backend ishlayapti 🚀",
   });
 });
+
+app.get("/api/v1/api.json", (_, res) => res.json(swaggerDoc));
 
 app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/users", usersRoutes);

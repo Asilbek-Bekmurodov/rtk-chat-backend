@@ -7,34 +7,85 @@
   },
   "servers": [
     {
+      "url": "https://rtk-chat-backend.onrender.com",
+      "description": "Production"
+    },
+    {
       "url": "http://localhost:5001",
       "description": "Development"
     }
   ],
-  "tags": [
-    {
-      "name": "Auth",
-      "description": "Authentication"
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
     },
-    {
-      "name": "Users",
-      "description": "User Management"
-    },
-    {
-      "name": "Chats",
-      "description": "Chat Management"
-    },
-    {
-      "name": "Invites",
-      "description": "Chat Invites"
+    "schemas": {
+      "User": {
+        "type": "object",
+        "properties": {
+          "_id": { "type": "string" },
+          "username": { "type": "string" },
+          "role": { "type": "string", "enum": ["user", "admin", "superAdmin"] },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "updatedAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "Chat": {
+        "type": "object",
+        "properties": {
+          "_id": { "type": "string" },
+          "title": { "type": "string" },
+          "participants": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/User" }
+          },
+          "createdAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "Message": {
+        "type": "object",
+        "properties": {
+          "_id": { "type": "string" },
+          "chatId": { "type": "string" },
+          "sender": { "$ref": "#/components/schemas/User" },
+          "text": { "type": "string" },
+          "replyTo": { "$ref": "#/components/schemas/Message" },
+          "createdAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "Invite": {
+        "type": "object",
+        "properties": {
+          "_id": { "type": "string" },
+          "chatId": { "$ref": "#/components/schemas/Chat" },
+          "from": { "$ref": "#/components/schemas/User" },
+          "to": { "$ref": "#/components/schemas/User" },
+          "status": { "type": "string", "enum": ["pending", "accepted", "declined"] },
+          "createdAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "Error": {
+        "type": "object",
+        "properties": {
+          "message": { "type": "string" }
+        }
+      }
     }
+  },
+  "tags": [
+    { "name": "Auth", "description": "Authentication" },
+    { "name": "Users", "description": "User Management" },
+    { "name": "Chats", "description": "Chat Management" },
+    { "name": "Invites", "description": "Chat Invites" }
   ],
   "paths": {
     "/api/v1/auth/register": {
       "post": {
-        "tags": [
-          "Auth"
-        ],
+        "tags": ["Auth"],
         "summary": "Register new user",
         "requestBody": {
           "required": true,
@@ -42,13 +93,10 @@
             "application/json": {
               "schema": {
                 "type": "object",
+                "required": ["username", "password"],
                 "properties": {
-                  "username": {
-                    "type": "string"
-                  },
-                  "password": {
-                    "type": "string"
-                  }
+                  "username": { "type": "string", "example": "john_doe" },
+                  "password": { "type": "string", "example": "secret123" }
                 }
               }
             }
@@ -56,30 +104,31 @@
         },
         "responses": {
           "201": {
-            "description": "User created"
-          }
+            "description": "User created",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/User" }
+              }
+            }
+          },
+          "400": { "description": "Username band yoki maydon yo'q" }
         }
       }
     },
     "/api/v1/auth/login": {
       "post": {
-        "tags": [
-          "Auth"
-        ],
-        "summary": "User login",
+        "tags": ["Auth"],
+        "summary": "Login",
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
+                "required": ["username", "password"],
                 "properties": {
-                  "username": {
-                    "type": "string"
-                  },
-                  "password": {
-                    "type": "string"
-                  }
+                  "username": { "type": "string", "example": "john_doe" },
+                  "password": { "type": "string", "example": "secret123" }
                 }
               }
             }
@@ -87,8 +136,578 @@
         },
         "responses": {
           "200": {
-            "description": "Login successful"
+            "description": "Login muvaffaqiyatli",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "accessToken": { "type": "string" },
+                    "refreshToken": { "type": "string" },
+                    "user": { "$ref": "#/components/schemas/User" }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "description": "Noto'g'ri ma'lumotlar" }
+        }
+      }
+    },
+    "/api/v1/auth/refresh": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Access token yangilash",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "refreshToken": { "type": "string" }
+                }
+              }
+            }
           }
+        },
+        "responses": {
+          "200": {
+            "description": "Yangi tokenlar",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "accessToken": { "type": "string" },
+                    "refreshToken": { "type": "string" }
+                  }
+                }
+              }
+            }
+          },
+          "401": { "description": "Token noto'g'ri yoki muddati tugagan" }
+        }
+      }
+    },
+    "/api/v1/auth/logout": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Logout",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "refreshToken": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Logout qilindi" }
+        }
+      }
+    },
+    "/api/v1/auth/change-password": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Parol o'zgartirish",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["currentPassword", "newPassword"],
+                "properties": {
+                  "currentPassword": { "type": "string" },
+                  "newPassword": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Parol yangilandi" },
+          "400": { "description": "Parol xato" },
+          "401": { "description": "Autentifikatsiya xatosi" }
+        }
+      }
+    },
+    "/api/v1/auth/change-username": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Username o'zgartirish",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["username"],
+                "properties": {
+                  "username": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Username yangilandi",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": { "type": "string" },
+                    "user": { "$ref": "#/components/schemas/User" }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "description": "Username band" }
+        }
+      }
+    },
+    "/api/v1/users": {
+      "get": {
+        "tags": ["Users"],
+        "summary": "Foydalanuvchilar ro'yxati",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "page", "in": "query", "schema": { "type": "integer", "default": 1 } },
+          { "name": "limit", "in": "query", "schema": { "type": "integer", "default": 5 } },
+          { "name": "search", "in": "query", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Foydalanuvchilar",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/User" }
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "page": { "type": "integer" },
+                        "limit": { "type": "integer" },
+                        "total": { "type": "integer" },
+                        "totalPages": { "type": "integer" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Users"],
+        "summary": "Yangi foydalanuvchi qo'shish",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["username"],
+                "properties": {
+                  "username": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Yaratildi",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/User" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/users/{id}": {
+      "put": {
+        "tags": ["Users"],
+        "summary": "Foydalanuvchini yangilash",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "username": { "type": "string" },
+                  "role": { "type": "string", "enum": ["user", "admin", "superAdmin"] }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Yangilandi",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/User" }
+              }
+            }
+          },
+          "404": { "description": "Topilmadi" }
+        }
+      },
+      "delete": {
+        "tags": ["Users"],
+        "summary": "Foydalanuvchini o'chirish",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "O'chirildi" },
+          "404": { "description": "Topilmadi" }
+        }
+      }
+    },
+    "/api/v1/chats": {
+      "get": {
+        "tags": ["Chats"],
+        "summary": "Mening chatlarim",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Chatlar ro'yxati",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/Chat" }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Chats"],
+        "summary": "Yangi chat yaratish",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "userId": { "type": "string", "description": "Private chat uchun" },
+                  "title": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Chat yaratildi",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Chat" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/chats/{id}/invite": {
+      "post": {
+        "tags": ["Chats"],
+        "summary": "Chatga invite yuborish",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "username": { "type": "string" },
+                  "userId": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Invite yuborildi",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "invite": { "$ref": "#/components/schemas/Invite" },
+                    "chatId": { "type": "string" },
+                    "joinPath": { "type": "string" }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "description": "Xato so'rov" },
+          "404": { "description": "Topilmadi" }
+        }
+      }
+    },
+    "/api/v1/chats/{id}/join": {
+      "post": {
+        "tags": ["Chats"],
+        "summary": "Chatga qo'shilish",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Chatga qo'shildi",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Chat" }
+              }
+            }
+          },
+          "404": { "description": "Chat yoki invite topilmadi" }
+        }
+      }
+    },
+    "/api/v1/chats/{id}/messages": {
+      "get": {
+        "tags": ["Chats"],
+        "summary": "Chat xabarlari",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Xabarlar ro'yxati",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/Message" }
+                }
+              }
+            }
+          },
+          "403": { "description": "Ruxsat yo'q" },
+          "404": { "description": "Chat topilmadi" }
+        }
+      }
+    },
+    "/api/v1/chats/{chatId}/messages/{messageId}": {
+      "patch": {
+        "tags": ["Chats"],
+        "summary": "Xabarni tahrirlash",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "chatId", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "messageId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["text"],
+                "properties": {
+                  "text": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Xabar yangilandi",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Message" }
+              }
+            }
+          },
+          "403": { "description": "Ruxsat yo'q" },
+          "404": { "description": "Topilmadi" }
+        }
+      },
+      "delete": {
+        "tags": ["Chats"],
+        "summary": "Xabarni o'chirish",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "chatId", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "messageId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "Xabar o'chirildi" },
+          "403": { "description": "Ruxsat yo'q" },
+          "404": { "description": "Topilmadi" }
+        }
+      }
+    },
+    "/api/v1/chats/{id}": {
+      "delete": {
+        "tags": ["Chats"],
+        "summary": "Chatni o'chirish (admin)",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "Chat o'chirildi" },
+          "403": { "description": "Admin ruxsati kerak" },
+          "404": { "description": "Chat topilmadi" }
+        }
+      }
+    },
+    "/api/v1/chats/{id}/leave": {
+      "delete": {
+        "tags": ["Chats"],
+        "summary": "Chatdan chiqish",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "Chatdan chiqildi" },
+          "403": { "description": "Ruxsat yo'q" },
+          "404": { "description": "Chat topilmadi" }
+        }
+      }
+    },
+    "/api/v1/invites": {
+      "get": {
+        "tags": ["Invites"],
+        "summary": "Mening invitlarim",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Invitlar ro'yxati",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/Invite" }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/invites/{id}/join": {
+      "post": {
+        "tags": ["Invites"],
+        "summary": "Invite orqali chatga qo'shilish",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Chatga qo'shildi",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "chat": { "$ref": "#/components/schemas/Chat" },
+                    "invite": { "$ref": "#/components/schemas/Invite" }
+                  }
+                }
+              }
+            }
+          },
+          "403": { "description": "Ruxsat yo'q" },
+          "404": { "description": "Topilmadi" }
+        }
+      }
+    },
+    "/api/v1/invites/{id}/accept": {
+      "post": {
+        "tags": ["Invites"],
+        "summary": "Invitni qabul qilish",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Invite qabul qilindi",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "invite": { "$ref": "#/components/schemas/Invite" },
+                    "chat": { "$ref": "#/components/schemas/Chat" }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "description": "Invite allaqachon yopilgan" },
+          "403": { "description": "Ruxsat yo'q" }
+        }
+      }
+    },
+    "/api/v1/invites/{id}/reject": {
+      "post": {
+        "tags": ["Invites"],
+        "summary": "Invitni rad etish",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Invite rad etildi",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "invite": { "$ref": "#/components/schemas/Invite" }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "description": "Invite allaqachon yopilgan" },
+          "403": { "description": "Ruxsat yo'q" }
         }
       }
     }
