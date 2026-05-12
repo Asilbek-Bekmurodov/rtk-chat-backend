@@ -4,6 +4,7 @@ import { Server } from "socket.io";
 import cors from "cors";
 import dotenv from "dotenv";
 import { createRequire } from "module";
+import swaggerUi from "swagger-ui-express";
 import connectDB from "./config/db.js";
 import { seedAdmins } from "./config/seed.js";
 
@@ -45,6 +46,7 @@ app.get("/", (_, res) => {
 });
 
 app.get("/api/v1/api.json", (_, res) => res.json(swaggerDoc));
+app.use("/api/v1/docs", swaggerUi.serve, swaggerUi.setup(swaggerDoc));
 
 app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/users", usersRoutes);
